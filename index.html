@@ -3,23 +3,67 @@
 <head>
   <meta charset="UTF-8">
   <title>Безопасность GraphQL API</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     :root {
-      --bg-color: #1e1e1e;
-      --text-color: #e0e0e0;
+      --bg-light: #ffffff;
+      --text-light: #1e1e1e;
+      --bg-dark: #1e1e1e;
+      --text-dark: #e0e0e0;
       --heading-color: #4fd1c5;
-      --code-bg: #2d2d2d;
-      --code-text: #ffffff;
+      --code-bg-light: #f5f5f5;
+      --code-bg-dark: #2d2d2d;
       --accent: #00bcd4;
     }
 
     body {
-      background-color: var(--bg-color);
-      color: var(--text-color);
       font-family: "Segoe UI", sans-serif;
-      line-height: 1.6;
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg-dark);
+      color: var(--text-dark);
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    body.light-mode {
+      background-color: var(--bg-light);
+      color: var(--text-light);
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #2c2c2c;
+      padding: 10px 20px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    header.light-mode {
+      background-color: #f0f0f0;
+    }
+
+    nav a {
+      color: var(--accent);
+      margin: 0 10px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .theme-toggle {
+      cursor: pointer;
+      background: none;
+      border: 1px solid var(--accent);
+      border-radius: 4px;
+      padding: 6px 12px;
+      color: var(--accent);
+    }
+
+    .container {
       max-width: 900px;
-      margin: 40px auto;
+      margin: 0 auto;
       padding: 20px;
     }
 
@@ -27,40 +71,53 @@
       color: var(--heading-color);
     }
 
-    img {
-      display: block;
-      margin: 15px auto;
-      max-width: 100%;
-      height: auto;
-      border: 1px solid #555;
-      border-radius: 6px;
-    }
-
     code {
-      background-color: var(--code-bg);
-      color: var(--code-text);
+      background-color: var(--code-bg-dark);
+      color: #fff;
       padding: 2px 6px;
       border-radius: 4px;
       font-family: Consolas, monospace;
     }
 
+    body.light-mode code {
+      background-color: var(--code-bg-light);
+      color: #000;
+    }
+
     pre {
-      background-color: var(--code-bg);
-      color: var(--code-text);
+      position: relative;
+      background-color: var(--code-bg-dark);
+      color: #fff;
       padding: 15px;
       border-radius: 8px;
       overflow-x: auto;
-      font-family: Consolas, monospace;
-      font-size: 15px;
       margin: 20px 0;
     }
 
-    ul {
-      padding-left: 20px;
+    body.light-mode pre {
+      background-color: var(--code-bg-light);
+      color: #000;
     }
 
-    a {
-      color: var(--accent);
+    .copy-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background-color: #4fd1c5;
+      border: none;
+      color: #000;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    img {
+      max-width: 100%;
+      height: auto;
+      margin: 15px auto;
+      display: block;
+      border-radius: 6px;
     }
 
     blockquote {
@@ -69,163 +126,209 @@
       margin: 1em 0;
       color: #ccc;
     }
+
+    ul {
+      padding-left: 20px;
+    }
+
+    .tooltip {
+      position: relative;
+      border-bottom: 1px dashed #4fd1c5;
+      cursor: help;
+    }
+
+    .tooltip::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 120%;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #333;
+      color: #fff;
+      padding: 5px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease-in-out;
+      font-size: 13px;
+    }
+
+    .tooltip:hover::after {
+      opacity: 1;
+    }
+
+    @media screen and (max-width: 768px) {
+      nav {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .theme-toggle {
+        margin-top: 10px;
+      }
+    }
   </style>
 </head>
 <body>
+  <header id="site-header">
+    <nav>
+      <a href="#arch">Архитектура</a>
+      <a href="#concept">Концепция</a>
+      <a href="#vulns">Уязвимости</a>
+      <a href="#defense">Защита</a>
+      <a href="#tools">Инструменты</a>
+    </nav>
+    <button class="theme-toggle" onclick="toggleTheme()">Сменить тему</button>
+  </header>
 
+  <div class="container" id="article-content">
+  <div class="container" id="article-content">
   <h1>Безопасность и эксплуатация GraphQL</h1>
-  <p>
-   GraphQL – это язык запроса API, который позволяет клиентам гибко запрашивать только нужные данные. В отличие от REST API , GraphQL позволяет объединить несколько запросов в один, что делает его более эффективным. Однако его гибкость и универсальность создают серьезные проблемы безопасности, если API не настроен должным образом. В этой статье рассмотрены основные моменты воздействия на GraphQL , методы защиты и инструменты тестирования безопасности.
-  </p>
-
-  <h2>Архитектура GraphQL и отличие от REST</h2>
-  <p>
-    GraphQL и REST – два варианта построения API, но они различаются принципами работы.
-  </p>
-  <img src="1.jpg" alt="GraphQL vs REST">
-
-  <p>
-    REST (передача репрезентативного состояния) строится на основе количества эндпоинтов, каждый из которых отвечает за текущий ресурс (например, /players, /teams, /matches). Клиент делает несколько запросов к разным эндпоинтам, чтобы получить нужные данные. Это может привести к:
-
-резервной передачи данных ( over-fetching), когда клиент получает больше информации, чем необходимо;
-
-недостаточная передача данных ( under-fetching), когда клиенту приходится делать несколько запросов, чтобы собрать всю необходимую информацию. 
-GraphQL использует единый конечный пункт ( /graphql), который принимает запросы на получение только исходных данных. Клиент может задать вопросы по конкретным вопросам, избегая проблем over-fetchingи under-fetchingт. д. Однако такой подход порождает новые риски:
-
-Возможность удаления скрытых данных, если схема API не настроена должным образом;
-
-уязвимость к механизмам рекурсивным запросам, которые могут перезагружать сервер.
-  </p>
-
+  <p>GraphQL – это язык запроса API, который позволяет клиентам гибко запрашивать только нужные данные. В отличие от <span class="tooltip" data-tooltip="Representational State Transfer">REST API</span>, GraphQL позволяет объединить несколько запросов в один, что делает его более эффективным. Однако его гибкость и универсальность создают серьезные проблемы безопасности, если API не настроен должным образом. В этой статье рассмотрены основные моменты воздействия на GraphQL, методы защиты и инструменты тестирования безопасности.</p>
+  
+  <h2 id="arch">Архитектура GraphQL и отличие от REST</h2>
+  <p>GraphQL и REST – два варианта построения API, но они различаются принципами работы.</p>
+  
+  <blockquote>REST (передача репрезентативного состояния) строится на основе количества эндпоинтов, каждый из которых отвечает за текущий ресурс (например, <code>/players</code>, <code>/teams</code>, <code>/matches</code>). Клиент делает несколько запросов к разным эндпоинтам, чтобы получить нужные данные. Это может привести к:</blockquote>
+  <ul>
+    <li>резервной передачи данных (<span class="tooltip" data-tooltip="Когда клиент получает больше информации, чем необходимо">over-fetching</span>), когда клиент получает больше информации, чем необходимо;</li>
+    <li>недостаточной передаче данных (<span class="tooltip" data-tooltip="Когда клиенту приходится делать несколько запросов, чтобы собрать всю необходимую информацию">under-fetching</span>), когда клиенту приходится делать несколько запросов, чтобы собрать всю необходимую информацию.</li>
+  </ul>
+  
+  <p><span class="tooltip" data-tooltip="/graphql">GraphQL</span> использует единый конечный пункт (<code>/graphql</code>), который принимает запросы на получение только исходных данных. Клиент может задать вопросы по конкретным вопросам, избегая проблем over-fetching и under-fetching. Однако такой подход порождает новые риски:</p>
+  <ul>
+    <li>Возможность удаления скрытых данных, если схема API не настроена должным образом;</li>
+    <li>уязвимость к механизмам рекурсивных запросов, которые могут перезагружать сервер.</li>
+  </ul>
+  
   <h2>Основная концепция GraphQL</h2>
-  <p>Схема : Определить типы данных, доступные в API, и отношения между ними. Схема контракта между клиентом и сервером, описывающая, какие запросы можно выполнить и какие данные можно получить.
+  <p><strong>Схема:</strong> Определить типы данных, доступные в API, и отношения между ними. Схема — контракт между клиентом и сервером, описывающая, какие запросы можно выполнить и какие данные можно получить.</p>
+  <p><strong>Типы:</strong> основные схемы построения блоков. Включают скалярные типы (например, <code>Int</code>, <code>String</code>, <code>Boolean</code>) и объектные типы, которые могут содержать несколько полей различных типов.</p>
+  <p><strong>Запросы:</strong> используются для чтения данных. Клиент определяет структуру запроса, и сервер получает данные точно в таком же формате.</p>
+  <p><strong>Мутации:</strong> используются для изменения данных (создания, обновления, удаления).</p>
+  <p><strong>Подписки:</strong> разрешают клиенту получать обновления в мгновение ока при просмотре данных на расстоянии.</p>
+  
+  <h3>Пример схемы GraphQL:</h3>
+  <pre>
+    <code>
+      type Author {
+        id: ID!
+        name: String!
+        books: [Book]
+      }
 
-Типы : основные схемы построения блоков. Включают скалярные типы (например, Int, String, Boolean) и объектные типы, которые могут содержать несколько полей различных типов.
+      type Book {
+        id: ID!
+        title: String!
+        author: Author
+      }
 
-Запросы : используются для чтения данных. Клиент определяет структуру запроса, и сервер получает данные точно в таком же формате.
+      type Query {
+        authors: [Author]
+        books: [Book]
+        book(id: ID!): Book
+      }
 
-Мутации : используются для изменения данных (создания, обновления, удаления).
-
-Подписки : разрешить клиенту получать обновления в мгновение ока при просмотре данных на расстоянии.
-
-Пример схемы GraphQL:</p>
-
-  <pre><code>type Author {
-  id: ID!
-  name: String!
-  books: [Book]
-}
-
-type Book {
-  id: ID!
-  title: String!
-  author: Author
-}</code></pre>
-
-  <p>
-    В данном методе используются методы и методы, Authorа Book также запросы на получение списков авторов, книг и книг по ID. Мутация addBook Позволяет добавить новую книгу с именем и идентификатором автора.
-  </p>
+      type Mutation {
+        addBook(title: String!, authorId: ID!): Book
+      }
+    </code>
+  </pre>
+  <p>В данном методе используются методы и методы, <code>Author</code> и <code>Book</code> также запросы на получение списков авторов, книг и книг по ID. Мутация <code>addBook</code> позволяет добавить новую книгу с именем и идентификатором автора.</p>
 
   <h2>Основные уязвимости в GraphQL</h2>
-
-  <h3>1. Инспекция схемы (Introspection Attack)</h3>
-  <p>
-В GraphQL встроена возможность самоанализа (самоанализа), которая позволяет клиенту запрашивать API модели, включая все доступные типы, запросы и мутации. Хоть это и удобно, но может стать уязвимым, если не отключить его заранее. Злоумышленник, получивший доступ к шаблону, может использовать его для поиска скрытых API и уязвимых эндпоинтов.
-
-Запрос самоанализа в GraphQL Playground:
-  </p>
-  <pre><code>{
-  __schema {
-    types {
-      name
-      fields {
-        name
+  <h3>Инспекция схемы (<span class="tooltip" data-tooltip="Запрос всех доступных типов и полей API">Introspection Attack</span>)</h3>
+  <p>В GraphQL встроена возможность самоанализа (самоанализа), которая позволяет клиенту запрашивать API модели, включая все доступные типы, запросы и мутации. Хоть это и удобно, но может стать уязвимым, если не отключить его заранее. Злоумышленник, получивший доступ к шаблону, может использовать его для поиска скрытых API и уязвимых эндпоинтов.</p>
+  
+  <h4>Запрос самоанализа в GraphQL Playground:</h4>
+  <pre>
+    <code>
+      {
+        __schema {
+          types {
+            name
+            fields {
+              name
+            }
+          }
+        }
       }
-    }
-  }
-}</code></pre>
-
-  <h3>2. GraphQL-инъекции</h3>
-  <p>
-    GraphQL-инъекции похожи на традиционные SQL-инъекции. Всегда, когда входные данные пользователя обрабатываются без проверок и используются для выполнения внутреннего запроса.
-
-Пример GraphQL-инъекции:
-  </p>
-  <pre><code>{
-  user(id: "1 OR 1=1") {
-    username
-  }
-}</code></pre>
-  <p>
-    В случае уязвимости API оно может вернуть список всех пользователей вместо одного. Что может привести к утечке конфиденциальной информации.
-
-Другой вариант лечения – внедрение в мутации:
-  </p>
- <pre><code>{
-mutation {
-  updateUser(id: "1", username: "hacker") {
-    username
-  }
-}
-}</code></pre>
-  <p>
-    Если сервер ранее не получил доступа к правам, атакующий может изменить данные других пользователей.
-  </p>
-  <h3>3. DDoS-атаки через сложный запрос</h3>
-  <p>
-    GraphQL позволяет создавать вложенные запросы, которые могут быть использованы злоумышленниками для перегрузки сервера. Если сервер не ограничивает ввод рекурсивных запросов, злоумышленник может создать бесконечную рекурсию и вызвать отказ в обслуживании.
-
-Пример атаки:
-  </p>
-  <pre><code>{
-  user {
-    friends {
-      friends {
-        friends {
+    </code>
+  </pre>
+  <p>Если интроспекция включена, сервер вернет структуру API, вызывая атакующий анализ потенциальных целей.</p>
+  
+  <h3>Инъекции в GraphQL (<span class="tooltip" data-tooltip="Атака с внедрением вредоносного кода в запросы">GraphQL Injection</span>)</h3>
+  <p>GraphQL-инъекции похожи на традиционные SQL-инъекции. Всегда, когда входные данные пользователя обрабатываются без проверок и используются для выполнения внутреннего запроса.</p>
+  
+  <h4>Пример GraphQL-инъекции:</h4>
+  <pre>
+    <code>
+      {
+        user(id: "1 OR 1=1") {
           username
         }
       }
-    }
-  }
-}</code></pre>
-<p>
-  Если сервер не настроен на ограничение вложенных запросов, он будет обрабатывать их до полного исчерпания ресурсов.
-</p>
+    </code>
+  </pre>
+  <p>В случае уязвимости API оно может вернуть список всех пользователей вместо одного. Что может привести к утечке конфиденциальной информации.</p>
   
+  <h3>DDoS-атаки через сложный запрос</h3>
+  <p>GraphQL позволяет создавать вложенные запросы, которые могут быть использованы злоумышленниками для перегрузки сервера. Если сервер не ограничивает ввод рекурсивных запросов, злоумышленник может создать бесконечную рекурсию и вызвать отказ в обслуживании.</p>
+  
+  <h4>Пример атаки:</h4>
+  <pre>
+    <code>
+      {
+        user {
+          friends {
+            friends {
+              friends {
+                username
+              }
+            }
+          }
+        }
+      }
+    </code>
+  </pre>
+  <p>Если сервер не настроен на ограничение вложенных запросов, он будет обрабатывать их до полного исчерпания ресурсов.</p>
+
   <h2>Методы и способы защиты GraphQL API</h2>
   <ul>
-    <li>Ограничение доступа к запросам интроспекции : интроспекция Позволяет студентам получать информацию о шаблоне API. В производственной среде рекомендуется отключить интроспекцию, чтобы злоумышленники не могли получить информацию о ходе API.
-
-</li>
+    <li>Ограничение доступа к запросам интроспекции : интроспекция Позволяет студентам получать информацию о шаблоне API. В производственной среде рекомендуется отключить интроспекцию, чтобы злоумышленники не могли получить информацию о ходе API.</li>
     <li>Проверка входных данных : необходимо проверять и ограничивать входные данные, чтобы предотвратить инъекции и другие действия. Например, можно использовать директивы для проверки данных на уровне схемы.</li>
-    <li>Ограничение глубины и сложности запроса : чтобы предотвратить действие типа «отказ в обслуживании» (DoS) с помощью изменения или простых рекурсивных запросов, следует сохранить ограничения на общую структуру и сложность запроса.
-
-</li>
-    <li>Ограничение частоты запросов (Rate Limiting): для предотвращения обработки уязвимых мутаций или брутфорс-атак рекомендуется ограничить количество запросов от одного клиента в течение текущего периода времени. Это можно реализовать с помощью специальных плагинов или промежуточного программного обеспечения.
-
-</li>
-    <li>Использование безопасного транспортного протокола : при использовании HTTP для запросов и мутаций необходимо применять HTTPS для шифрования данных и защиты их от перехвата.
-
-</li>
+    <li>Ограничение глубины и сложности запроса : чтобы предотвратить действие типа «отказ в обслуживании» (DoS) с помощью изменения или простых рекурсивных запросов, следует сохранить ограничения на общую структуру и сложность запроса.</li>
+    <li>Ограничение частоты запросов (Rate Limiting): для предотвращения обработки уязвимых мутаций или брутфорс-атак рекомендуется ограничить количество запросов от одного клиента в течение текущего периода времени. Это можно реализовать с помощью специальных плагинов или промежуточного программного обеспечения.</li>
+    <li>Использование безопасного транспортного протокола : при использовании HTTP для запросов и мутаций необходимо применять HTTPS для шифрования данных и защиты их от перехвата.</li>
     <li>Аутентификация и авторизация : необходимо внедрить надежные механизмы аутентификации и авторизации, чтобы гарантировать, что только авторизованные пользователи могут выполнять рабочие операции или получать доступ к данным наблюдения.</li>
   </ul>
-
-  <h3>Пример реализации ограничений на запросы к Node.js с использованием graphql-depth-limit:</h3>
-  <pre><code>const express = require('express');
+    <p>
+      Пример реализации ограничений на запросы к Node.js с использованием graphql-depth-limit:
+    </p>
+     <pre>
+    <code>
+    const express = require('express');
 const { graphqlHTTP } = require('express-graphql');
 const { makeExecutableSchema } = require('@graphql-tools/schema');
 const depthLimit = require('graphql-depth-limit');
 
 const typeDefs = `
-  type Query {
-    hello: String
-  }
+ type Query {
+   hello: String
+ }
 `;
 
 const resolvers = {
-  Query: {
-    hello: () => 'Hello world!',
-  },
+ Query: {
+   hello: () => 'Hello world!',
+ },
 };
 
 const schema = makeExecutableSchema({ typeDefs, resolvers });
@@ -233,39 +336,55 @@ const schema = makeExecutableSchema({ typeDefs, resolvers });
 const app = express();
 
 app.use(
-  '/graphql',
-  graphqlHTTP({
-    schema: schema,
-    validationRules: [depthLimit(5)],
-  })
+ '/graphql',
+ graphqlHTTP({
+   schema: schema,
+   validationRules: [depthLimit(5)], // Ограничение глубины запросов до 5
+ })
 );
 
 app.listen(4000, () => {
-  console.log('Server is running on http://localhost:4000/graphql');
-});</code></pre>
-<p>
+ console.log('Server is running on http://localhost:4000/graphql');
+});
+    </code>
+  </pre>
+  <p>
   В данном примере используется промежуточное программное обеспечение graphql-depth-limit для ограничения глубины запроса до 5 уровней, которое помогает предотвратить воздействие с использованием дополнительного запроса.
-
+  </p>
+ <p>
 Реализация современной меры безопасности позволит защитить GraphQL API от указанных уязвимостей и обеспечить стабильную и безопасную работу сервиса.
-</p>
+ </p>
+    
   <h2>Инструменты для тестирования безопасности GraphQL</h2>
-
-  <h3>GraphQLmap</h3>
-  <p>GraphQLmap – автоматизированный инструмент для тестирования GraphQL API на уязвимости.</p>
-  <img src="2.jpg" alt="GraphQLmap интерфейс">
-
-  <h3>GraphQL Voyager</h3>
-  <p>GraphQL Voyager – инструмент для визуализации API схем и поиска уязвимостей.</p>
-  <img src="3.jpg" alt="GraphQL Voyager пример">
-
-  <h3>InQL (Burp Suite Plugin)</h3>
-  <p>InQL (Burp Suite Plugin) – расширение Burp Suite для анализа GraphQL API и обнаружения скрытых эндпоинтов.</p>
-  <img src="4.jpg" alt="InQL для Burp Suite">
+  <p><span class="tooltip" data-tooltip="Инструмент для тестирования безопасности GraphQL API">GraphQLmap</span> – автоматизированный инструмент для тестирования GraphQL API на уязвимости.</p>
+  <p><span class="tooltip" data-tooltip="Инструмент для визуализации схем GraphQL">GraphQL Voyager</span> – инструмент для визуализации API схем и поиска уязвимостей.</p>
+  <p><span class="tooltip" data-tooltip="Расширение для Burp Suite, предназначенное для анализа GraphQL API">InQL</span> (Burp Suite Plugin) – расширение Burp Suite для анализа GraphQL API и обнаружения скрытых эндпоинтов.</p>
 
   <h2>Заключение</h2>
-  <p>
-    GraphQL — гибкий инструмент для построения API, но требует строгих мер безопасности. Используй ограничения, валидацию, аутентификацию и тестовые инструменты, чтобы предотвратить возможные уязвимости.
-  </p>
+  <p>GraphQL – современный инструмент для построения API, обеспечивающий гибкость запросов данных. Однако его особенности могут привести к различным уязвимостям, таким как утечка данных, инъекции и перегрузка серверных функций запросов. Настройка ограничивает доступ к данным, вносит вложенные запросы и контролирует аутентификацию, чтобы минимизировать риски. Понимание возможных атак и использование инструментов тестирования безопасности позволяют выявлять и обеспечивать уязвимости, обеспечение стабильности и защиту API.</p>
+</div>
 
+  </div>
+
+  <script>
+    function toggleTheme() {
+      document.body.classList.toggle('light-mode');
+      document.getElementById('site-header').classList.toggle('light-mode');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('pre').forEach((pre) => {
+        const btn = document.createElement('button');
+        btn.className = 'copy-btn';
+        btn.innerText = 'Скопировать';
+        btn.onclick = () => {
+          navigator.clipboard.writeText(pre.innerText);
+          btn.innerText = 'Скопировано!';
+          setTimeout(() => btn.innerText = 'Скопировать', 2000);
+        };
+        pre.appendChild(btn);
+      });
+    });
+  </script>
 </body>
 </html>
