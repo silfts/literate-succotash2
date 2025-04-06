@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>GraphQL и безопасность</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      margin: 40px;
+      background-color: #f9f9f9;
+      color: #333;
+    }
+    h1, h2, h3 {
+      color: #2c3e50;
+    }
+    code, pre {
+      background-color: #eee;
+      padding: 10px;
+      display: block;
+      overflow-x: auto;
+      border-radius: 5px;
+    }
+    ul {
+      padding-left: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>GraphQL – язык запроса API</h1>
+
+  <p><strong>GraphQL</strong> – это язык запроса API, который позволяет клиентам гибко запрашивать только нужные данные. В отличие от REST API, GraphQL позволяет объединить несколько запросов в один, что делает его более эффективным. Однако его гибкость и универсальность создают проблемы безопасности, если API не настроен должным образом.</p>
+
+  <h2>Архитектура GraphQL и отличие от REST</h2>
+  <p><strong>REST</strong> строится на основе множества эндпоинтов (например, /players, /teams), что может привести к:</p>
+  <ul>
+    <li><em>over-fetching</em> – клиент получает больше данных, чем нужно;</li>
+    <li><em>under-fetching</em> – клиенту приходится делать несколько запросов для получения нужных данных.</li>
+  </ul>
+  <p><strong>GraphQL</strong> использует один эндпоинт (<code>/graphql</code>), который возвращает только нужные поля.</p>
+
+  <h3>Риски GraphQL:</h3>
+  <ul>
+    <li>Утечка скрытых данных;</li>
+    <li>Рекурсивные запросы и DDoS.</li>
+  </ul>
+
+  <h2>Основная концепция GraphQL</h2>
+  <ul>
+    <li><strong>Схема</strong>: определяет типы данных и их связи;</li>
+    <li><strong>Типы</strong>: скалярные (Int, String) и объектные;</li>
+    <li><strong>Запросы</strong>: чтение данных;</li>
+    <li><strong>Мутации</strong>: изменение данных;</li>
+    <li><strong>Подписки</strong>: реальное время.</li>
+  </ul>
+
+  <h3>Пример схемы:</h3>
+  <pre><code>type Author {
+  id: ID!
+  name: String!
+  books: [Book]
+}
+
+type Book {
+  id: ID!
+  title: String!
+  author: Author
+}
+
+type Query {
+  authors: [Author]
+  books: [Book]
+  book(id: ID!): Book
+}
+
+type Mutation {
+  addBook(title: String!, authorId: ID!): Book
+}</code></pre>
+
+  <h2>Уязвимости GraphQL</h2>
+
+  <h3>1. Инспекция схемы (Introspection)</h3>
+  <p>Позволяет злоумышленнику получить структуру API:</p>
+  <pre><code>{
+  __schema {
+    types {
+      name
+      fields {
+        name
+      }
+    }
+  }
+}</code></pre>
+
+  <h3>2. GraphQL-инъекции</h3>
+  <pre><code>{
+  user(id: "1 OR 1=1") {
+    username
+  }
+}</code></pre>
+
+  <h3>3. DDoS-атаки через вложенность</h3>
+  <pre><code>{
+  user {
+    friends {
+      friends {
+        friends {
+          username
+        }
+      }
+    }
+  }
+}</code></pre>
+
+  <h2>Методы защиты</h2>
+  <ul>
+    <li>Отключение introspection на проде;</li>
+    <li>Валидация входных данных;</li>
+    <li>Ограничение глубины/сложности запросов;</li>
+    <li>Rate limiting;</li>
+    <li>HTTPS;</li>
+    <li>Аутентификация и авторизация.</li>
+  </ul>
+
+  <h3>Пример ограничения глубины (Node.js):</h3>
+  <pre><code>const express = require('express');
+const { graphqlHTTP } = require('express-graphql');
+const { makeExecutableSchema } = require('@graphql-tools/schema');
+const depthLimit = require('graphql-depth-limit');
+
+const typeDefs = \`
+  type Query {
+    hello: String
+  }
+\`;
+
+const resolvers = {
+  Query: {
+    hello: () => 'Hello world!',
+  },
+};
+
+const schema = makeExecutableSchema({ typeDefs, resolvers });
+
+const app = express();
+
+app.use('/graphql', graphqlHTTP({
+  schema: schema,
+  validationRules: [depthLimit(5)]
+}));
+
+app.listen(4000, () => {
+  console.log('Server is running on http://localhost:4000/graphql');
+});</code></pre>
+
+  <h2>Инструменты тестирования безопасности</h2>
+  <ul>
+    <li><strong>GraphQLmap</strong> – автоматическое тестирование;</li>
+    <li><strong>GraphQL Voyager</strong> – визуализация схемы;</li>
+    <li><strong>InQL</strong> (Burp Suite Plugin) – анализ эндпоинтов.</li>
+  </ul>
+
+  <h2>Заключение</h2>
+  <p>GraphQL – мощный инструмент, но требует особого внимания к безопасности. Используйте ограничения, валидацию и проверку запросов, чтобы минимизировать риски утечки и атак.</p>
+
+</body>
+</html>
